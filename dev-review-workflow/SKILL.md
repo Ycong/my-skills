@@ -1,0 +1,84 @@
+---
+name: dev-review-workflow
+description: Gated dev loop with subagent review — plan, risk tiering, approval, execute, acceptance, verdict. Use when the user states a development requirement or says 按 review-workflow 走. Not for questions, discussions, or doc-only edits.
+---
+
+# Dev Review Workflow（开发审核流程编排）
+
+本 skill 是流程编排层（规定"怎么转"）。审核标准（"审什么"）来自**当前项目根目录**的 `review-checklist.md`——由各项目自行维护，含项目红线。`review-checklist-base.md` 仅为母版，绝不作为审核标准加载。
+
+## 启动前置检查
+
+1. 在当前项目根目录找 `review-checklist.md`。
+2. 找不到 → 停止，告知用户需先复制 `review-checklist-base.md` 到项目根目录、重命名为 `review-checklist.md`、填好第四节红线。可主动代为完成复制与改名，但红线内容必须由用户确认。
+3. 找到 → 进入循环。
+
+## 流程总览
+
+```
+发起 → ① 方案 → ② 分级（人工确认）→ ③ 审核（subagent）→ ④ 放行/驳回
+     → ⑤ 执行 → ⑥ 验收（subagent）→ ⑦ 结论（仅异常上报人工）
+```
+
+## 步骤规则
+
+**1. 方案产出（AI）**
+必须包含四要素：影响面、风险分级建议及理由、回滚方案、可执行验收清单（能自动化的验收项必须落为测试或脚本）。缺任一项直接退回重写，不进入审核。
+
+**2. 分级判定（AI 预判 + 人工确认）**
+- AI 按判定原则预判并写明理由：不看功能"像什么"，看它失效或误用时波及什么
+- 命中 L1 判定原则（核心链路、资金/资产、数据破坏、安全边界）→ 强制 L1，不得降级；存疑从高
+- 人工确认分级后才继续（L2/L3 可秒批，确认动作不可省）
+
+**3. 审核（subagent）**
+- L3 免审，直接执行
+- L2 起单个审核 subagent
+- L1 起并行审核（建议：安全边界/失效路径一个，并发资源一个）
+- 材料三样：方案文档、项目的 review-checklist.md、相关代码路径
+- prompt 用文末模板，不得即兴发挥
+
+**4. 放行 / 驳回**
+- 无 blocking：L2 自动放行；L1 等人工确认 blocking 清空
+- 有 blocking：驳回 → 修正 → 仅重审 diff 修正部分 → 回到本步
+
+**5. 执行（AI）**
+只做已批准范围。diff 即验收材料，不得夹带。
+
+**6. 验收（subagent）**
+材料：diff、验收清单、项目的 review-checklist.md。可自动化项必须实际运行测试/脚本，全绿报告作为放行凭证。
+
+**7. 结论**
+- 通过 → 结束
+- 有条件通过 → 遗留 non-blocking 项上报人工过目后结束
+- 驳回 → 修正 → 仅重审 diff → 回到第 6 步；连续两轮未过 → 人工裁决
+
+## 人工介入点（全流程仅此四个，不得增加也不得跳过）
+
+| # | 时机 | 动作 |
+|---|---|---|
+| 1 | 第 2 步 | 确认风险分级 |
+| 2 | 第 4 步 | 确认 L1 blocking 清空，批准执行 |
+| 3 | 第 7 步 | 过目有条件通过的遗留项 |
+| 4 | 验收驳回且修正两轮未过 | 人工裁决 |
+
+## subagent prompt 模板
+
+**方案审核**
+
+```text
+你是独立审核人，与方案作者无共享上下文，不得迁就方案的自评结论。
+材料：方案文档 {路径}、审核标准 {项目review-checklist.md路径}、相关代码 {路径列表}。
+逐条核对 checklist 各节；以代码与配置实况为准，不信任方案描述。
+输出：结论（通过/有条件通过/驳回）+ blocking 列表 + non-blocking 列表，
+每条附代码位置或方案章节。
+```
+
+**执行验收**
+
+```text
+你是独立验收人，与执行者无共享上下文。
+材料：diff {路径或范围}、验收清单 {路径}、审核标准 {项目review-checklist.md路径}。
+逐条执行验收：可自动化项必须实际运行测试/脚本并附输出；人工项给出核对证据。
+同时核对：diff 无夹带、blocking 项代码层复核、偏差全部披露。
+输出：结论 + 各验收项结果 + 偏差与遗留清单。
+```
