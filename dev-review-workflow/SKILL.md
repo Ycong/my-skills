@@ -11,7 +11,9 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 
 1. 在当前项目根目录找 `review-checklist.md`。
 2. 找不到 → 停止，告知用户需先复制 `review-checklist-base.md` 到项目根目录、重命名为 `review-checklist.md`、填好第四节红线。可主动代为完成复制与改名，但红线内容必须由用户确认。
-3. 找到 → 进入循环。
+3. 找到 → 检测项目根目录的 `.review-workflow-state`（跨会话状态文件）：
+   - 存在未完成流程 → 向用户报告其中进度（需求、分级、当前步骤、材料路径），询问续跑还是作废；续跑则从记录的步骤继续，作废则删除该文件后从头发起
+   - 不存在 → 正常发起
 
 ## 流程总览
 
@@ -19,6 +21,12 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 发起 → ① 方案 → ② 分级（人工确认）→ ③ 审核（subagent）→ ④ 放行/驳回
      → ⑤ 执行 → ⑥ 验收（subagent）→ ⑦ 结论（仅异常上报人工）
 ```
+
+## 跨会话状态持久化
+
+- 每完成一步，立即更新项目根目录的 `.review-workflow-state`：需求摘要、风险分级、当前步骤、方案与审核结论要点、关键材料路径（方案文档、diff、验收清单）
+- 第 7 步得出最终结论后删除该文件
+- 首次创建该文件时提醒用户将其加入 `.gitignore`（流程状态不进版本库）
 
 ## 步骤规则
 
