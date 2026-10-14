@@ -43,6 +43,7 @@ ln -s "$(pwd)/dev-review-workflow" ~/.trae-cn/skills/dev-review-workflow
 |---|---|---|
 | `tdd` | L1 强制 TDD 循环（red-green-refactor） | 按 SKILL.md 内联 TDD 规则执行 |
 | `grill-with-docs` | 方案产出前澄清模糊需求，沉淀术语表 | 直接产出方案 |
+| `to-spec` | 澄清后将结论标准化成文 | 由 AI 直接撰写方案文档 |
 | `to-tickets` | 大需求拆分为带阻塞关系的工单 | 不拆分，整需求走流程 |
 
 安装方式（任选其一）：
@@ -54,10 +55,19 @@ npx skills@latest add mattpocock/skills
 # 或手动下载对应目录后复制到全局 skills 目录
 # https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd
 # https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs
+# https://github.com/mattpocock/skills/tree/main/skills/engineering/to-spec
 # https://github.com/mattpocock/skills/tree/main/skills/engineering/to-tickets
 ```
 
-注意：三者均为可选依赖，dev-review-workflow 未检测到它们时按内联规则降级执行，不阻塞流程。
+注意：四者均为可选依赖，dev-review-workflow 未检测到它们时按内联规则降级执行，不阻塞流程。
+
+## 融合边界（与 mattpocock 编排链的关系）
+
+dev-review-workflow 的 7 步门禁骨架不变，外部 skill 只作为步骤内的可选执行器接入：
+
+- 已接入：澄清（grill-with-docs）→ 成文（to-spec）→ 拆票（to-tickets）→ TDD（tdd）
+- 不接入：code-review 审核链（语义冲突——无 checklist 绑定、无红线、无 blocking 门禁，替换即丢失人工介入点）
+- 并行实现仅限 L2 无阻塞工单（每工单独立 diff、独立验收）；L1 永远串行 TDD
 
 ## 维护纪律
 
