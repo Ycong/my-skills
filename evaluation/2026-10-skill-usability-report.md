@@ -205,7 +205,7 @@ frontmatter description 同步收窄触发范围。omp 版把"主会话不产出
 
 ### 建议不改（文案级打磨，随时可做，不值得单独开一轮）
 
-- **P3-9** README 的 `npx skills@latest add mattpocock/skills` 补 `-a pi`
+- **P3-9** README 的 `npx skills@latest add mattpocock/skills` 补 `-a pi` —— **已作为 L0 直通样例顺手改掉**（1 次确认 + 1 条验收命令 + 0 子代理，见提交信息 "L0 fast path example"）
 - **P3-10** 通用版 description 的"doc-only edits"与 L3 定义措辞统一
 - **P3-12** `review-checklist-base.md` 第 3 节去 Java 语境（本次实测在 Python 上仍有效，改不改都不影响）
 
