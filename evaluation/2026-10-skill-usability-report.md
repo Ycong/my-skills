@@ -120,9 +120,9 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 遗留项 ≠ 验收失败，却参与 `overall` 判定，语义污染。
 → 修法：schema 增 `deviations`（string[]）与 `leftovers`（string[]）；`overall` 只由 `checks` 决定。
 
-**P1-3 `slice` 是四个 agent 的 required 字段，但派发模板从未提及。**
-实测三次派发都是子代理自己猜的值（本次猜得合理，但这是运气）。
-→ 修法：三个 prompt 模板各补一句"`slice` 填规格卡编号或一句话标识"。
+**P1-3 `slice` 是 core-dev / implementer / verifier 三个 agent 的 required 字段，但派发模板从未提及。**
+实测中 core-dev 与 verifier 各自猜了一个值（本次猜得合理，但这是运气；`reviewer.md` 的 schema 无该字段）。
+→ 修法："实现派发"与"执行验收"两个模板各补一句"`slice` 填规格卡编号或一句话标识"。
 
 **P1-4 模型配置锁死供应商，且含已退役别名。**
 `config-snippet.yml` 全量指向 `deepseek/*`，`core-dev.md` 直接写死 `deepseek/deepseek-v4-pro`；
@@ -174,7 +174,7 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 1. **P1-1**：omp 版前置检查第 4 条 → 由"按 name 找到"改为"按 name 找到且来源路径等于期望路径，
    并在 `/agents` 详情页确认 `output` 契约"。**只改 omp 版**（属于"运行环境与角色分派"差异类）。
 2. **P1-2 / P1-3 / P3-11**：改 `dev-review-workflow-omp/agents/*.md`（schema 加字段）
-   + 三个 prompt 模板补 `slice` 说明。**通用版模板也要同步补 `slice` 那句**（两版逐字一致处）。
+   + "实现派发""执行验收"两个 prompt 模板补 `slice` 说明。**通用版模板也要同步补 `slice` 那句**（两版逐字一致处）。
 3. **P1-4**：`config-snippet.yml` 换 `deepseek-flash`；`core-dev.md` 的 `model` 改角色别名。
 4. **P2-5**：两版 SKILL.md 各补"非交互运行"一节（通用版先改，再移植）。
 5. P2-6/7/8、P3-9/10/12 视精力，属于体验与文档打磨。
