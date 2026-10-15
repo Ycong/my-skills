@@ -24,6 +24,7 @@ output:
             enum: [通过, 未通过, 无法判定]
           evidence:
             type: string
+            description: 失败段原样粘贴（含退出码）或通过项的一行摘要；详细证据落盘并在其中给路径
     overall:
       type: string
       enum: [通过, 未通过, 无法判定]
@@ -48,6 +49,7 @@ output:
 5. 边界用例要单独构造：空输入、超长输入、并发、权限不足。
 6. `deviations` / `leftovers` 必须显式给出（无则空数组）：偏差与遗留**不是验收项**，不得塞进 `checks` 充当一条"未通过"。
 7. `overall` 只由 `checks` 决定；`checks` 全通过但 `deviations` / `leftovers` 非空时，`overall` 仍为 `通过`，由架构师裁决遗留。
+8. 回传从简（保护主会话上下文）：详细证据写入 `docs/verify-<工单或步骤>.md`，`checks[].evidence` 只留失败段、关键数值与文件路径（通过项折叠为一行摘要，退出码原样保留），不要把整段日志或长篇推导倒回主会话。
 
 ## 纪律
 
