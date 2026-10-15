@@ -1,0 +1,23 @@
+# modelRoles 配置片段 —— dev-review-workflow-omp 的角色依赖
+# 合并进 ~/.omp/agent/config.yml（不要整文件替换，只取 modelRoles 段）
+# 改完用 /models 的 Roles 视图核对每个角色实际解析到的模型；
+# omp 角色解析失败会静默回退，不报错。
+
+modelRoles:
+  default: deepseek/deepseek-v4-pro:high      # 主会话 = 架构师（0 diff，只出规格与裁决）
+  plan: deepseek/deepseek-v4-pro:xhigh        # /plan：一次想透
+  task: deepseek/deepseek-v4-flash:medium     # implementer 用 @task（L2/L3 常规实现）
+  slow: deepseek/deepseek-v4-pro:high         # reviewer / verifier 用 @slow（审核与验收）
+  smol: deepseek/deepseek-v4-flash:low        # 简单编辑、后台零碎活
+  tiny: deepseek/deepseek-v4-flash:low        # 标题、记忆、后台
+  commit: deepseek/deepseek-v4-flash:low      # 提交信息
+
+# core-dev 不占角色位：模型写在 agents/core-dev.md 的 frontmatter（显式强模型）。
+
+# 实现子代理的并发上限（L2 多工单并行时用）
+task:
+  maxConcurrency: 4
+
+# 防止静默跑到别的 provider（注意：项目级 .omp/config.yml 会替换而非追加此列表）
+enabledModels:
+  - "deepseek/*"

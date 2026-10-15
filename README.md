@@ -6,13 +6,18 @@
 
 ```
 my-skills/
-├── dev-review-workflow/       # skill：开发审核流程编排（怎么转）
+├── dev-review-workflow/       # skill：开发审核流程编排（怎么转）· 通用版
 │   └── SKILL.md
+├── dev-review-workflow-omp/   # skill：同上 · oh-my-pi(omp) 适配版（自包含，含子代理与角色配置）
+│   ├── SKILL.md
+│   ├── agents/                # reviewer / core-dev / implementer / verifier
+│   ├── config-snippet.yml     # modelRoles 片段（@task/@slow 解析来源）
+│   └── README.md
 ├── review-checklist-base.md   # 审核标准母版（审什么的初始化源）
 └── README.md
 ```
 
-## 安装 dev-review-workflow
+## 安装通用版 dev-review-workflow
 
 将 `dev-review-workflow/` 目录放入对应产品的全局 skills 目录：
 
@@ -25,6 +30,31 @@ cp -r dev-review-workflow ~/.trae-cn/skills/
 
 # 或 symlink 方式（本仓库 git pull 后自动同步）
 ln -s "$(pwd)/dev-review-workflow" ~/.trae-cn/skills/dev-review-workflow
+```
+
+## 安装 omp 适配版 dev-review-workflow-omp
+
+将 `dev-review-workflow-omp/` 目录放入 omp 的全局 skills 目录：
+
+```bash
+ln -s "$(pwd)/dev-review-workflow-omp" ~/.omp/agent/skills/dev-review-workflow-omp
+```
+
+**依赖四个命名子代理与角色配置，均已自包含在本目录**（适配版按 name 派发：第 3 步 `reviewer`、第 5 步 `core-dev`/`implementer`、第 6 步 `verifier`；缺任何一个 skill 拒绝启动，不降级为主会话亲自执行）：
+
+```bash
+# 1. skill
+ln -s "$(pwd)/dev-review-workflow-omp" ~/.omp/agent/skills/dev-review-workflow-omp
+
+# 2. 子代理定义：先确认官方目录约定，再放文件
+omp agents unpack
+cp dev-review-workflow-omp/agents/*.md <omp agents 目录>/
+
+# 3. 角色配置：把 dev-review-workflow-omp/config-snippet.yml 的
+#    modelRoles / task / enabledModels 段合并进 ~/.omp/agent/config.yml
+
+# 4. /models 的 Roles 视图核对每个角色实际解析到的模型——
+#    omp 角色解析失败会静默回退，不报错
 ```
 
 ## 新项目初始化审核标准
@@ -71,6 +101,7 @@ dev-review-workflow 的 7 步门禁骨架不变，外部 skill 只作为步骤�
 
 ## 维护纪律
 
-- 流程变更只改本仓库的 `dev-review-workflow/SKILL.md`，改完同步到各机器安装位置
+- 通用版变更只改本仓库的 `dev-review-workflow/SKILL.md`，改完同步到各机器安装位置
+- **omp 适配版跟随通用版同步**：先改通用版，再把差异移植到 `dev-review-workflow-omp/SKILL.md`（本版差异仅限"运行环境与角色分派"节、第 3/5/6 步的派发对象、prompt 模板的箭头标注，其余保持与通用版逐字一致，方便 diff）
 - 通用审核条目只改 `review-checklist-base.md`，各项目版只维护自己的红线
 - 各机器禁止手改安装位置的文件，统一从本仓库更新
