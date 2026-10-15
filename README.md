@@ -82,8 +82,9 @@ cp dev-review-workflow-omp/agents/*.md <omp agents 目录>/
 安装方式（任选其一）：
 
 ```bash
-# 官方安装器（交互式选择 skill 与 agent）
-npx skills@latest add mattpocock/skills
+# 官方安装器（交互式选择 skill 与 agent；指定 -a pi 可直接装进 oh-my-pi/omp）
+npx skills@latest add mattpocock/skills -a <agent>   # cursor, opencode, devin, windsurf, amp, pi
+npx skills@latest add mattpocock/skills              # 省略 -a 时交互式选择
 
 # 或手动下载对应目录后复制到全局 skills 目录
 # https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd
