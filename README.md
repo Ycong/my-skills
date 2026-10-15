@@ -22,18 +22,18 @@ my-skills/
 
 ## 安装通用版 dev-review-workflow
 
-将 `dev-review-workflow/` 目录放入对应产品的全局 skills 目录：
-
-- Trae CN：`~/.trae-cn/skills/`
-- Trae 国际版：`~/.trae/skills/`
+将 `dev-review-workflow/` 目录放入你所使用 agent 的**全局 skills 目录**（各产品路径见其官方文档，本仓库不绑定具体产品）：
 
 ```bash
-# 复制方式
-cp -r dev-review-workflow ~/.trae-cn/skills/
+# 复制方式（<skills-dir> 换成该 agent 的全局 skills 目录）
+cp -r dev-review-workflow <skills-dir>/
 
 # 或 symlink 方式（本仓库 git pull 后自动同步）
-ln -s "$(pwd)/dev-review-workflow" ~/.trae-cn/skills/dev-review-workflow
+ln -s "$(pwd)/dev-review-workflow" <skills-dir>/dev-review-workflow
 ```
+
+目标环境必须能起**独立执行体**（subagent / 子代理 / 独立任务会话）：第 3 步审核与第 6 步验收都要求
+"与方案作者、执行者无共享上下文"。若产品只能在同一会话内自审，第 3/6 步降级为自查并明确告知用户。
 
 ## 安装 omp 适配版 dev-review-workflow-omp
 
@@ -104,7 +104,7 @@ dev-review-workflow 的 7 步门禁骨架不变，外部 skill 只作为步骤�
 
 ## 可用性评估（2026-10）
 
-见 `evaluation/2026-10-skill-usability-report.md`：逐条核验外部依赖（omp / Trae / mattpocock skills / 模型 ID），
+见 `evaluation/2026-10-skill-usability-report.md`：逐条核验外部依赖（omp / mattpocock skills / 模型 ID），
 并用一次 L1 变更（资金退款接口改造）实测第 3/5/6 步，植入"自报全绿""越界夹带"两类失真。
 结论：核心门禁真实有效（抓到 10 项 blocking、否定假绿申报、抓出夹带），但有 4 条 P1 问题需修；
 报告只给评估与建议，**不改动 skill 本体**。复现材料在 `evaluation/trial-2026-10/`。

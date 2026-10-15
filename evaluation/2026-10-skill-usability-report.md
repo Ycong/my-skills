@@ -14,7 +14,7 @@
    第 6 步 verifier 干净重跑否定了"全绿"申报、抓出越界文件，并自建 50 线程并发与边界输入用例。
 2. **依赖项事实核验基本全绿。** omp 的 agents/skills 目录、frontmatter 字段（含 `read-summarize`、`output`）、
    `@task`/`@slow` 角色别名、`task.maxConcurrency`、`enabledModels` 替换语义、`omp agents unpack`、
-   Trae 的 skills 目录、mattpocock/skills 的四个 skill 路径——**逐条有官方文档或仓库实证**。
+   mattpocock/skills 的四个 skill 路径——**逐条有官方文档或仓库实证**。
 3. **但有 4 个真实问题**：① omp 版前置检查只按 `name` 判定子代理，可能被同名 agent 静默替换；
    ② verifier 的 `output` schema 与派发模板不一致，实测被"绕过"；③ 模型配置指向已退役别名且锁死供应商；
    ④ headless/CI 场景未定义，4 个人工介入点无法履行。
@@ -28,10 +28,9 @@
 
 | 手段 | 覆盖 | 强度 |
 |---|---|---|
-| 一手文档核验（omp.sh/docs、docs.trae.cn、DeepSeek API docs） | 所有外部依赖的事实 | 强（官方原文，含原文引用） |
+| 一手文档核验（omp.sh/docs、DeepSeek API docs） | 所有外部依赖的事实 | 强（官方原文，含原文引用） |
 | `gh api` 仓库核验 | mattpocock/skills 四个 skill 路径、安装命令 | 强（仓库实际内容） |
 | 端到端实测（本环境子代理，按 SKILL.md 模板与 agents 正文派发） | 第 3/5/6 步的**机制有效性** | 中强（机制层，非 omp 实机） |
-| Trae 侧实测 | — | 未做（环境无 Trae），仅文档核验 |
 
 **明确的局限（影响结论强度，务必一并阅读）**
 
@@ -39,7 +38,7 @@
   子代理是"自愿合规"——因此"schema 会被运行时拦下非法返回"这一条**未经验证**。
 - token 数为本环境观测值，不是 omp 的计费口径，只能当**相对量级**看。
 - 未实测：L2/L3 路径、多工单并行实现、`.review-workflow-state` 跨会话续跑、连续两轮未过的人工裁决。
-- 环境无 `omp`、无 Trae，故"按 README 安装后能跑起来"属**文档级+机制级**证据，不是实机证据。
+- 环境无 `omp`，故"按 README 安装后能跑起来"属**文档级+机制级**证据，不是实机证据。
 
 ## 三、依赖事实核验（逐条）
 
@@ -57,12 +56,8 @@
 | 10 | "omp 角色解析失败会静默回退，不报错" | 文档只说"角色/模型解析不到时去 `/models` 核对"，并未承诺"静默回退"；可确认的是未解析不会阻断定义发现 | ⚠️ 方向正确、措辞偏强 |
 | 11 | mattpocock/skills 的 `skills/engineering/{tdd,grill-with-docs,to-spec,to-tickets}` | `gh api` 实测四个目录均存在（各含 `SKILL.md`，`tdd` 另含 `agents/`） | ✅ |
 | 12 | `npx skills@latest add mattpocock/skills` | 该仓库 README 原文命令，且支持 `-a <agent>`（列表含 `pi`） | ✅ 可补 `-a pi` |
-| 13 | Trae CN 全局 skills `~/.trae-cn/skills/` | docs.trae.cn 技能页原文："全局技能：macOS/Linux：本地根目录 `~/.trae-cn/skills`" | ✅ |
-| 14 | Trae 国际版 `~/.trae/skills/` | 国际站文档为 JS 渲染，未能取到原文；按 CN 文档的 `~/.trae-cn` ↔ `~/.trae` 模式推断成立 | ⚠️ 未获一手确认 |
-| 15 | 通用版第 3/6 步"起 subagent"在 Trae 可执行 | Trae 有 Subagent：用户级 `~/.trae-cn/agents/*.md`、项目级 `.trae/agents/*.md`；**按 `description` 匹配派发，且仅内置 Agent 可调用** | ⚠️ 可执行但不可控（无法按 name 强制） |
-| 16 | 两个版本必须分开维护 | Trae subagent 用大写工具名（`Read`/`Write`/`Edit`/`Bash`）、无 `output` 字段、模型仅限内置列表 → omp 的 agents 无法复用 | ✅ 分版的判断正确 |
-| 17 | `deepseek/deepseek-v4-pro`、`deepseek/deepseek-v4-flash` | DeepSeek 官方定价页：`deepseek-v4-pro` 有效；`deepseek-v4-flash` 已是 **legacy 名，模型已退役**，请求由 V4.1-Flash 承接（建议写 `deepseek-flash`） | ⚠️ pro 有效，flash 需更新 |
-| 18 | 四个 agent 名字不会与 omp 内置冲突 | omp 内置 agent 列表**包含 `reviewer`**（@slow，"Evidence-backed correctness, quality, and security review"）；自定义同名可覆盖内置，但项目级 `.omp/agents/reviewer.md` 又会压过用户级 | ⚠️ 存在静默替换路径 |
+| 13 | `deepseek/deepseek-v4-pro`、`deepseek/deepseek-v4-flash` | DeepSeek 官方定价页：`deepseek-v4-pro` 有效；`deepseek-v4-flash` 已是 **legacy 名，模型已退役**，请求由 V4.1-Flash 承接（建议写 `deepseek-flash`） | ⚠️ pro 有效，flash 需更新 |
+| 14 | 四个 agent 名字不会与 omp 内置冲突 | omp 内置 agent 列表**包含 `reviewer`**（@slow，"Evidence-backed correctness, quality, and security review"）；自定义同名可覆盖内置，但项目级 `.omp/agents/reviewer.md` 又会压过用户级 | ⚠️ 存在静默替换路径 |
 
 ## 四、端到端实测：三关的真实表现
 
@@ -99,7 +94,7 @@
 | 小修小补、配置一行改动 | ❌ 不建议 | 三关成本远超改动本身，且 checklist 会把配置变更判成 L2 → 仍要三关 |
 | 纯文档/注释 | ❌ | description 已明确排除（但与 L3 定义有轻微矛盾，见 P3-10） |
 | headless / CI 无人值守 | ❌ **不可用** | 4 个人工介入点无法履行，skill 未定义降级行为（见 P2-5） |
-| 非 omp、非 Trae 的工具 | 视情况 | omp 版会拒绝启动（设计如此）；通用版要求"能起独立 subagent"，本次实测证明只要工具有子代理能力即可跑通 |
+| 非 omp 的工具 | 视情况 | omp 版会拒绝启动（设计如此）；通用版要求"能起独立 subagent"，本次实测证明只要工具有子代理能力即可跑通 |
 | 多工单并行实现（L2 无阻塞） | ⚠️ 未实测 | 机制上可行（`task.maxConcurrency` 已确认存在），但"每工单独立 diff 独立验收"在单工作树里靠 `git diff` 收集会互相污染，需人工或隔离工作区配合 |
 
 ## 六、发现的问题（按影响排序）
@@ -148,10 +143,11 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 若同一 omp 环境还能从 `~/.claude/skills/`、`~/.agent/skills/` 等**兼容目录**发现通用版，会出现同名两 skill。
 → 修法：omp 版设 `name: dev-review-workflow-omp`（或 README 注明"两版不要同时装在 omp 可见目录"）。
 
-**P2-8 通用版没有"子代理怎么起"的可执行说明。** 通用版只说"起 subagent"。在 Trae 里，subagent 由
-`description` 匹配自动委派、**仅内置 Agent 可调用**，无法按 name 强制、也没有 `output` 兜底 → 第 3/6 步是否
-真的派发、派发到什么，不可控；而 omp 版反过来又是"缺一个就拒绝启动"。
-→ 修法：通用版补"派发映射"表（Trae subagent / omp agent / Cline `task` 各自怎么落），并明确
+**P2-8 通用版没有"子代理怎么起"的可执行说明。** 通用版只说"起 subagent"，但目标环境的机制差异很大：
+一类是**命名 agent 型**（如 omp：`agents/<name>.md` 预装定义 + 按 name 派发 + `output` schema 兜底），
+另一类是**通用 task 型**（一次性的独立执行体，每次现场拼 prompt、无 schema 兜底）。通用版对两者都没写清，
+第 3/6 步是否真的派发、派发到什么，不可控；而 omp 版反过来又是"缺一个就拒绝启动"。
+→ 修法：通用版补"派发映射"表（命名 agent 型 / 通用 task 型各自怎么落），并明确
 "若环境无法保证独立执行体，按无子代理降级处理并告知用户"。
 
 ### P3 · 文档一致性（低成本）
@@ -196,7 +192,7 @@ git --no-pager diff --stat                     # 3 个文件
 
 ## 九、本次没有做的事
 
-- 没有实机安装 omp / Trae 跑一遍（环境无这两个工具），因此"按 README 安装即可用"只有文档级证据。
+- 没有实机安装 omp 跑一遍（环境无 omp），因此"按 README 安装即可用"只有文档级证据。
 - 没有验证 omp 运行时对 `output` schema 的**强制校验**行为（子代理是否会被拦下重派）。
 - 没有改动任何 skill / agent / checklist 文件——本报告只是评估与建议，改动应由你按维护纪律决定。
 
