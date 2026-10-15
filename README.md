@@ -14,6 +14,9 @@ my-skills/
 │   ├── config-snippet.yml     # modelRoles 片段（@task/@slow 解析来源）
 │   └── README.md
 ├── review-checklist-base.md   # 审核标准母版（审什么的初始化源）
+├── evaluation/                # 可用性评估（评估与建议，不改 skill 本体）
+│   ├── 2026-10-skill-usability-report.md   # 结论：能用，但有 4 条 P1 需修
+│   └── trial-2026-10/         # 实测材料：被测项目 + 派发 prompt + 三关证据
 └── README.md
 ```
 
@@ -98,6 +101,13 @@ dev-review-workflow 的 7 步门禁骨架不变，外部 skill 只作为步骤�
 - 已接入：澄清（grill-with-docs）→ 成文（to-spec）→ 拆票（to-tickets）→ TDD（tdd）
 - 不接入：code-review 审核链（语义冲突——无 checklist 绑定、无红线、无 blocking 门禁，替换即丢失人工介入点）
 - 并行实现仅限 L2 无阻塞工单（每工单独立 diff、独立验收）；L1 永远串行 TDD
+
+## 可用性评估（2026-10）
+
+见 `evaluation/2026-10-skill-usability-report.md`：逐条核验外部依赖（omp / Trae / mattpocock skills / 模型 ID），
+并用一次 L1 变更（资金退款接口改造）实测第 3/5/6 步，植入"自报全绿""越界夹带"两类失真。
+结论：核心门禁真实有效（抓到 10 项 blocking、否定假绿申报、抓出夹带），但有 4 条 P1 问题需修；
+报告只给评估与建议，**不改动 skill 本体**。复现材料在 `evaluation/trial-2026-10/`。
 
 ## 维护纪律
 

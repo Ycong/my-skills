@@ -1,0 +1,6 @@
+# Python（评估用实测项目）
+__pycache__/
+*.pyc
+
+# dev-review-workflow 的跨会话状态文件（流程状态不进版本库）
+.review-workflow-state
