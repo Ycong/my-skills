@@ -1,6 +1,6 @@
 ---
 name: dev-review-workflow
-description: Gated dev loop with subagent review — plan, risk tiering, approval, execute, acceptance, verdict. Use when the user states a development requirement or says 按 review-workflow 走. Not for questions, discussions, or doc-only edits.
+description: Gated dev loop with subagent review — plan, risk tiering, approval, execute, acceptance, verdict. Use when the user states a development requirement or says 按 review-workflow 走. Micro changes (single file, no red lines, has an acceptance command) take the L0 fast path instead — one confirmation, no subagents, no plan doc. Not for questions, discussions, or doc-only edits.
 ---
 
 # Dev Review Workflow（开发审核流程编排）
@@ -18,8 +18,9 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 ## 流程总览
 
 ```
-发起 → ① 方案 → ② 分级（人工确认）→ ③ 审核（subagent）→ ④ 放行/驳回
-     → ⑤ 执行 → ⑥ 验收（subagent）→ ⑦ 结论（仅异常上报人工）
+发起 → 判定 L0（微小改动）→ 是 → 直通：① 直通卡确认 → ② 主会话直接改 → ③ 贴验收原始输出 → ④ 过目 diff → 结束
+                          → 否 → ① 方案 → ② 分级（人工确认）→ ③ 审核（subagent）→ ④ 放行/驳回
+                               → ⑤ 执行 → ⑥ 验收（subagent）→ ⑦ 结论（仅异常上报人工）
 ```
 
 ## 跨会话状态持久化
@@ -29,6 +30,24 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 - 首次创建该文件时提醒用户将其加入 `.gitignore`（流程状态不进版本库）
 
 ## 步骤规则
+
+**0. L0 直通（微小改动，全程 1 次交互）**
+只用于"改动比流程开销还小"的情形。**下列条件必须全部满足**：单文件改动；不命中 L1 判定原则；不命中项目红线；改动量约 ≤30 行且不新增公共接口/依赖；有可自动执行的验收命令（纯文档/注释类可无）。任一不满足或存疑 → 不进 L0，按常规分级走（存疑从高）。
+
+流程（只有 1 个人工介入点）：
+1. 主会话给"直通卡"三行：**改什么 / 动哪个文件 / 验收命令**，请用户确认（复用介入点 1，秒批）
+2. 确认后**主会话直接改**——不写方案文档、不派审核、不派实现子代理
+3. 跑验收命令，把**原始输出**贴出来（不得自评"通过"）
+4. 贴出 `git diff` 供过目，结束
+
+硬性升级规则（任一命中**立即停止**，已改内容作为方案输入，回到第 2 步重新分级）：
+- 改动溢出到第 2 个文件、超出约 30 行、或命中项目红线
+- 验收命令缺失或不为绿
+- 同一文件/模块已连续走过 2 次 L0（第 3 次起走常规流程，防化整为零）
+
+L0 不写方案文档、不写 `.review-workflow-state`；直通卡与验收原始输出留在会话记录里。
+一旦进入第 1 步（常规流程），不得中途退回 L0。
+注：L0 是**流程直通**，不改变 checklist 的风险分级判定（分级仍按 checklist 的 L1/L2/L3 判，放行方式由人工在直通卡里显式确认）。若要让 L0 成为正式分级，需人工在 `review-checklist-base.md` 与项目 `review-checklist.md` 中补条目——母版规则：AI 不得自行修改。
 
 **1. 方案产出（AI）**
 必须包含四要素：影响面、风险分级建议及理由、回滚方案、可执行验收清单（能自动化的验收项必须落为测试或脚本）。缺任一项直接退回重写，不进入审核。
@@ -75,6 +94,8 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 | 2 | 第 4 步 | 确认 L1 blocking 清空，批准执行 |
 | 3 | 第 7 步 | 过目有条件通过的遗留项 |
 | 4 | 验收驳回且修正两轮未过 | 人工裁决 |
+
+L0 直通只用介入点 1（直通卡确认）；L0 结束时贴 diff 供过目是**告知动作**，不是新增门禁。
 
 ## subagent prompt 模板
 

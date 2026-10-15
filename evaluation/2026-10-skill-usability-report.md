@@ -20,8 +20,7 @@
    ④ headless/CI 场景未定义，4 个人工介入点无法履行。
    **①②③ 中的缺陷部分已在本分支修复（见第七节），④ 与供应商锁定属设计取舍，待你定。**
 4. **成本必须配分级用。** 一次 L1 循环实测合计约 **47 万 input tokens / 26 轮子代理迭代**（三关）。
-   用在 L1/L2 且可自动验收的变更上划算；用在配置改动、小修小补上不划算，而 checklist 会把这类判成 L2
-   → 同样要过三关，缺少"轻量直通"通道。
+   用在 L1/L2 且可自动验收的变更上划算；小修小补原本没有便宜路径，**已在本分支补上 L0 直通**（1 次交互、0 子代理，见第七节）。
 
 一句话建议：**保留并继续用，但先修 P1 的 4 条；把 L1/L2 当默认适用面，L3 之外不要强推。**
 
@@ -140,7 +139,9 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 **P2-6 成本与分级不匹配，缺轻量通道。** 实测一次 L1 循环 ≈47 万 input tokens；而 checklist 把"配置变更、
 依赖升级"判为 L2 → 也要"方案 + 分级 + reviewer + 实现 + verifier"五步。L3 只覆盖文档/展示，
 **真实开发里最高频的"一行配置/小修"没有便宜路径**。
-→ 修法：L2 内再分轻/重（如"单文件且无红线命中"可只保留 verifier 关），或允许人工显式声明降级。
+→ 已修（本分支）：两版 SKILL.md 新增**第 0 步 L0 直通**（微小改动：单文件 / ≤30 行 / 不新增公共接口 / 不命中 L1 与红线 / 有验收命令），
+全程 1 次交互：直通卡确认 → 主会话直接改 → 贴验收原始输出 → 过目 diff；配套硬性升级条件（溢出第 2 个文件、超 30 行、命中红线、验收不绿、同一模块连续 2 次 → 立即停止并回到第 2 步）。
+frontmatter description 同步收窄触发范围。omp 版把"主会话不产出 diff"的不变式改为"除 L0 外"。
 
 **P2-7 omp 版 `name` 覆盖目录名。** `dev-review-workflow-omp/SKILL.md` 的 frontmatter 是
 `name: dev-review-workflow`；omp 文档明确 `name` 会**覆盖目录名**用于匹配与 `/skill:<name>`。
@@ -178,6 +179,7 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 | P1-2 | verifier schema 增 `deviations` / `leftovers`（required，无则空数组）+ 正文两条纪律 + 第 6 步"缺字段重派" | `agents/verifier.md`、`SKILL.md` |
 | P1-3 | 派发说明补 `slice` 必填提示（不动模板文本，两版模板保持逐字一致） | `SKILL.md` |
 | P1-4a | `deepseek-v4-flash` → `deepseek-flash`（退役别名） | `config-snippet.yml` |
+| P2-6 | 新增**第 0 步 L0 直通**（微小改动：1 次确认 / 0 子代理 / 无方案文档）+ description 收窄触发；omp 版不变式改为"除 L0 外" | 两版 `SKILL.md`、`dev-review-workflow-omp/README.md` |
 | — | 差异边界第 5 类措辞同步（prompt 模板节现含派发说明） | `dev-review-workflow-omp/README.md` |
 
 核验：四个 agent 的 frontmatter 与 `config-snippet.yml` 均通过 YAML 子集解析，且每个 `output.required`
@@ -188,8 +190,18 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 - **P1-4b 供应商锁定**：`core-dev.md` 写死 `deepseek/deepseek-v4-pro`。建议新增 `core` 角色 + frontmatter 写 `"@core"`；
   不改也能用（该模型名当前有效）。
 - **P2-5 headless/CI**：只有你要在 CI / `omp -p` 里跑这个流程才需要补"非交互运行"节；现在的"拒绝启动"是安全默认。
-- **P2-6 轻量通道**：放宽 L2 门禁有风险，建议维持"宁慢勿松"；真正高频的小改动靠人工判断不发起流程即可。
 - **P2-7 `name` 覆盖目录名**：只有两个版本同时装进同一 omp 可见目录才会撞名；改动会动 frontmatter 差异类，收益小。
+- **配套（需你手工粘贴）**：L0 目前只是 SKILL.md 里的**流程直通**，checklist 的 L1/L2/L3 分级没变。要让 L0 成为正式分级，
+  需在 `review-checklist-base.md` 与各项目 `review-checklist.md` 里补条目——**母版写明"AI 不得自行修改"，所以我没有动**。建议片段：
+
+  ```markdown
+  | L0 直通 | 微小改动：单文件、约 ≤30 行、不新增公共接口/依赖、不命中 L1 判定原则与项目红线、有可自动执行的验收命令 | 1 次人工确认后直通：不写方案文档、不派审核与验收 subagent，主会话直接改并贴验收原始输出 |
+
+  使用规则追加：
+  6. L0 直通仅用于"改动比流程开销还小"的情形，条件见分级表；任一条件不满足或存疑即升 L2（存疑从高）
+  7. L0 期间改动溢出第 2 个文件、超约 30 行、命中红线、验收命令缺失或不为绿 → 立即停止并走常规流程；
+     同一文件/模块连续 2 次 L0 后，第 3 次起强制走常规流程（防化整为零）
+  ```
 
 ### 建议不改（文案级打磨，随时可做，不值得单独开一轮）
 
