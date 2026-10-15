@@ -7,7 +7,7 @@ thinking-level: high
 output:
   type: object
   additionalProperties: false
-  required: [slice, checks, overall]
+  required: [slice, checks, overall, deviations, leftovers]
   properties:
     slice:
       type: string
@@ -27,6 +27,14 @@ output:
     overall:
       type: string
       enum: [通过, 未通过, 无法判定]
+    deviations:
+      type: array
+      items:
+        type: string
+    leftovers:
+      type: array
+      items:
+        type: string
 ---
 
 你是**验收者**。唯一输入是「验收标准 + 实施者的 diff」，唯一输出是**原始证据**。
@@ -38,6 +46,8 @@ output:
 3. `未通过` 必须附**原始报错输出**，不许转述、不许解释原因。
 4. `无法判定` 必须说明缺了哪条命令或哪个环境。
 5. 边界用例要单独构造：空输入、超长输入、并发、权限不足。
+6. `deviations` / `leftovers` 必须显式给出（无则空数组）：偏差与遗留**不是验收项**，不得塞进 `checks` 充当一条"未通过"。
+7. `overall` 只由 `checks` 决定；`checks` 全通过但 `deviations` / `leftovers` 非空时，`overall` 仍为 `通过`，由架构师裁决遗留。
 
 ## 纪律
 

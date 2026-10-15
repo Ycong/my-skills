@@ -41,7 +41,10 @@ description: Gated dev loop with subagent review, adapted for oh-my-pi (omp) —
 3. 找到 → 检测项目根目录的 `.review-workflow-state`（跨会话状态文件）：
    - 存在未完成流程 → 向用户报告其中进度（需求、分级、当前步骤、材料路径），询问续跑还是作废；续跑则从记录的步骤继续，作废则删除该文件后从头发起
    - 不存在 → 正常发起
-4. 检测四个子代理定义是否已安装（omp：agents 目录里能按 name 找到 `reviewer` / `core-dev` / `implementer` / `verifier`）。缺失 → 停止并列出缺哪些、装到哪个目录，等用户补齐。
+4. 检测四个子代理定义是否**确实是本 skill 的那四个**（只按 name 找到不算数——omp 内置 agent 里也有 `reviewer`，用户级文件缺失时会静默命中内置版本，而内置版本没有本 skill 要求的 `output` 契约）：
+   - `~/.omp/agent/agents/` 下必须存在 `reviewer.md` / `core-dev.md` / `implementer.md` / `verifier.md` 四个文件
+   - 从项目根向上逐级检查 `.omp/agents/`，不得存在同名文件（项目级定义优先于用户级，会静默顶掉本 skill 的定义）
+   - 任一条不满足 → 停止并列出缺哪个文件、被哪个路径顶掉，等用户补齐
 
 ## 流程总览
 
@@ -94,9 +97,11 @@ description: Gated dev loop with subagent review, adapted for oh-my-pi (omp) —
 材料：diff（主会话收集的 git diff）、验收清单、项目的 review-checklist.md。可自动化项必须实际运行测试/脚本，全绿报告作为放行凭证。
 - verifier 与第 5 步的实现子代理**必须是不同的执行体**，不复用其任何输出，干净重跑
 - 实现者若偏离规格（core-dev 的 `contract_deviations`、implementer 的 `notes`），偏差原文随材料一并给 verifier 复核
+- 结构化返回由 `verifier` 定义的 `output` JSON Schema 保证：偏差与遗留必须落在 `deviations` / `leftovers`（无则空数组），**不得塞进 `checks` 伪装成一条验收项**；`overall` 只由 `checks` 决定；缺这两个字段的返回视为无效，重派
 
 **7. 结论（主会话）**
 - 通过 → 结束
+- `verifier` 的 `leftovers` 非空 → 按"有条件通过"处理（遗留项上报人工过目后结束）；`deviations` 非空 → 先按偏差逐条复核再定结论
 - 有条件通过 → 遗留 non-blocking 项上报人工过目后结束
 - 驳回 → 修正 → 仅重审 diff → 回到第 6 步；连续两轮未过 → 人工裁决
 
@@ -112,6 +117,7 @@ description: Gated dev loop with subagent review, adapted for oh-my-pi (omp) —
 ## subagent prompt 模板
 
 派发时以 omp 命名子代理发起（agents 目录按 `name` 匹配），模板文本作为 prompt 传入；返回结构由各 agent 定义的 `output` JSON Schema 兜底。
+各 agent 的 `output` 中 `slice` 是必填字段（模板文本不含它），派发时明确告知填规格卡编号或一句话标识——不说明会被子代理猜。
 
 **方案审核（→ `reviewer`）**
 

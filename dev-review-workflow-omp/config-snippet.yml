@@ -6,11 +6,13 @@
 modelRoles:
   default: deepseek/deepseek-v4-pro:high      # 主会话 = 架构师（0 diff，只出规格与裁决）
   plan: deepseek/deepseek-v4-pro:xhigh        # /plan：一次想透
-  task: deepseek/deepseek-v4-flash:medium     # implementer 用 @task（L2/L3 常规实现）
+  task: deepseek/deepseek-flash:medium        # implementer 用 @task（L2/L3 常规实现）
   slow: deepseek/deepseek-v4-pro:high         # reviewer / verifier 用 @slow（审核与验收）
-  smol: deepseek/deepseek-v4-flash:low        # 简单编辑、后台零碎活
-  tiny: deepseek/deepseek-v4-flash:low        # 标题、记忆、后台
-  commit: deepseek/deepseek-v4-flash:low      # 提交信息
+  smol: deepseek/deepseek-flash:low           # 简单编辑、后台零碎活
+  tiny: deepseek/deepseek-flash:low           # 标题、记忆、后台
+  commit: deepseek/deepseek-flash:low         # 提交信息
+# 注意：deepseek-v4-flash 已是退役 legacy 名（模型下线，请求由 V4.1-Flash 承接），
+# 新配置一律写 deepseek-flash；deepseek-v4-pro 仍是当前有效名。
 
 # core-dev 不占角色位：模型写在 agents/core-dev.md 的 frontmatter（显式强模型）。
 

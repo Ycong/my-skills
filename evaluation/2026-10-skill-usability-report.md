@@ -18,6 +18,7 @@
 3. **但有 4 个真实问题**：① omp 版前置检查只按 `name` 判定子代理，可能被同名 agent 静默替换；
    ② verifier 的 `output` schema 与派发模板不一致，实测被"绕过"；③ 模型配置指向已退役别名且锁死供应商；
    ④ headless/CI 场景未定义，4 个人工介入点无法履行。
+   **①②③ 中的缺陷部分已在本分支修复（见第七节），④ 与供应商锁定属设计取舍，待你定。**
 4. **成本必须配分级用。** 一次 L1 循环实测合计约 **47 万 input tokens / 26 轮子代理迭代**（三关）。
    用在 L1/L2 且可自动验收的变更上划算；用在配置改动、小修小补上不划算，而 checklist 会把这类判成 L2
    → 同样要过三关，缺少"轻量直通"通道。
@@ -106,25 +107,29 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 而 omp **内置 agent 里就有 `reviewer`**（@slow）。所以：① 任何仓库里放了 `.omp/agents/reviewer.md`，
 本 skill 的 `reviewer` 会被静默顶掉；② 用户级文件缺失时，"按 name 能找到"也可能命中内置 reviewer
 （无本 skill 要求的 `output` 契约）。前置检查"能按 name 找到"因此**会误判为通过**。
-→ 修法：前置检查改为核对 `/agents` 详情页显示的**来源路径**（或 `omp agents` 输出），逐条比对期望路径
-（`~/.omp/agent/agents/{reviewer,core-dev,implementer,verifier}.md`），并要求 `output` 契约存在。
+→ 已修（本分支）：前置检查第 4 条改为「`~/.omp/agent/agents/` 下四个文件必须存在」+「从项目根向上逐级检查 `.omp/agents/` 不得存在同名文件」，
+两者不满足即停止并列出被哪个路径顶掉。用文件系统事实判定，不依赖人工去 `/agents` 里核对来源路径。
 
 **P1-2 verifier 的 `output` schema 与派发模板不一致（实测被绕过）。**
 模板要求"结论 + 各验收项结果 + **偏差与遗留清单**"，但 schema 是 `additionalProperties: false` 且只有
 `slice/checks/overall`。实测 verifier 只能把"遗留/待裁决项"**包装成一条 `未通过` 的 check**——
 遗留项 ≠ 验收失败，却参与 `overall` 判定，语义污染。
-→ 修法：schema 增 `deviations`（string[]）与 `leftovers`（string[]）；`overall` 只由 `checks` 决定。
+→ 已修（本分支）：`verifier.md` 的 schema 增 `deviations` / `leftovers`（string[]，列入 `required`，无则空数组），
+正文补「偏差与遗留不是验收项，不得塞进 `checks`」与「`overall` 只由 `checks` 决定」；omp 版第 6 步同步补「缺这两个字段的返回视为无效，重派」，
+第 7 步补「`leftovers` 非空 → 按有条件通过处理」（否则新字段收了没人接）。
 
 **P1-3 `slice` 是 core-dev / implementer / verifier 三个 agent 的 required 字段，但派发模板从未提及。**
 实测中 core-dev 与 verifier 各自猜了一个值（本次猜得合理，但这是运气；`reviewer.md` 的 schema 无该字段）。
-→ 修法："实现派发"与"执行验收"两个模板各补一句"`slice` 填规格卡编号或一句话标识"。
+→ 已修（本分支）：**不改模板文本**（两版模板继续保持逐字一致），改在 omp 版「subagent prompt 模板」节的**派发说明**里加一句
+「各 agent 的 `output` 中 `slice` 是必填字段，派发时明确告知填规格卡编号或一句话标识」。
 
 **P1-4 模型配置锁死供应商，且含已退役别名。**
 `config-snippet.yml` 全量指向 `deepseek/*`，`core-dev.md` 直接写死 `deepseek/deepseek-v4-pro`；
 其中 `deepseek-v4-flash` 在 DeepSeek 官方文档中已是 **legacy 名（模型已退役，按 `deepseek-flash`/V4.1-Flash 计费）**。
 非 DeepSeek 用户必须同时改两个文件才能用。
-→ 修法：`deepseek-v4-flash` → `deepseek-flash`；`core-dev.md` 的 `model` 改为角色别名（如 `"@slow"` 或新增
-`core` 角色），让"换供应商只改 `modelRoles` 一处"。
+→ 已修（本分支）：`deepseek-v4-flash` → `deepseek-flash`（task/smol/tiny/commit 四处），并在文件内加注释说明该名已退役。
+→ **待你定（设计取舍）**：`core-dev.md` 仍写死 `deepseek/deepseek-v4-pro`。可选方案是新增 `core` 角色、frontmatter 写 `"@core"`——
+仍是"显式指定"，但换供应商只改 `modelRoles` 一处；代价是多占一个角色位（omp 文档本身也建议"frontmatter 放角色别名、具体模型交给环境配置"）。
 
 ### P2 · 影响可用性与成本
 
@@ -163,17 +168,34 @@ omp 的 agent 解析优先级是「最近的项目 `.omp/agents/` → 用户 age
 的 `max_workers` 有界而内部队列无界，正好被这条抓住），但换成 Go/Node 项目时这条容易变成噪声。
 → 修法：把这节改写成与技术栈无关的表述（"并发执行体必须有界、可命名、拒绝策略明确"）。
 
-## 七、建议的最小改动顺序（本次提交**未**实施）
+## 七、处理状态
 
-按仓库维护纪律（"通用版变更只改 `dev-review-workflow/SKILL.md`，改完再把差异移植到 omp 版"）：
+### 已修（本分支；只动 omp 适配版与配套文件，通用版逐字未改）
 
-1. **P1-1**：omp 版前置检查第 4 条 → 由"按 name 找到"改为"按 name 找到且来源路径等于期望路径，
-   并在 `/agents` 详情页确认 `output` 契约"。**只改 omp 版**（属于"运行环境与角色分派"差异类）。
-2. **P1-2 / P1-3 / P3-11**：改 `dev-review-workflow-omp/agents/*.md`（schema 加字段）
-   + "实现派发""执行验收"两个 prompt 模板补 `slice` 说明。**通用版模板也要同步补 `slice` 那句**（两版逐字一致处）。
-3. **P1-4**：`config-snippet.yml` 换 `deepseek-flash`；`core-dev.md` 的 `model` 改角色别名。
-4. **P2-5**：两版 SKILL.md 各补"非交互运行"一节（通用版先改，再移植）。
-5. P2-6/7/8、P3-9/10/12 视精力，属于体验与文档打磨。
+| 问题 | 改了什么 | 落在哪 |
+|---|---|---|
+| P1-1 | 前置检查第 4 条：按 name 找到 → **文件存在性 + 项目级遮蔽检测** | `dev-review-workflow-omp/SKILL.md` |
+| P1-2 | verifier schema 增 `deviations` / `leftovers`（required，无则空数组）+ 正文两条纪律 + 第 6 步"缺字段重派" | `agents/verifier.md`、`SKILL.md` |
+| P1-3 | 派发说明补 `slice` 必填提示（不动模板文本，两版模板保持逐字一致） | `SKILL.md` |
+| P1-4a | `deepseek-v4-flash` → `deepseek-flash`（退役别名） | `config-snippet.yml` |
+| — | 差异边界第 5 类措辞同步（prompt 模板节现含派发说明） | `dev-review-workflow-omp/README.md` |
+
+核验：四个 agent 的 frontmatter 与 `config-snippet.yml` 均通过 YAML 子集解析，且每个 `output.required`
+里的字段都在 `properties` 中有定义（`additionalProperties: false` 下不会出现"必填但未定义"）。
+
+### 待你定（设计取舍，未动）
+
+- **P1-4b 供应商锁定**：`core-dev.md` 写死 `deepseek/deepseek-v4-pro`。建议新增 `core` 角色 + frontmatter 写 `"@core"`；
+  不改也能用（该模型名当前有效）。
+- **P2-5 headless/CI**：只有你要在 CI / `omp -p` 里跑这个流程才需要补"非交互运行"节；现在的"拒绝启动"是安全默认。
+- **P2-6 轻量通道**：放宽 L2 门禁有风险，建议维持"宁慢勿松"；真正高频的小改动靠人工判断不发起流程即可。
+- **P2-7 `name` 覆盖目录名**：只有两个版本同时装进同一 omp 可见目录才会撞名；改动会动 frontmatter 差异类，收益小。
+
+### 建议不改（文案级打磨，随时可做，不值得单独开一轮）
+
+- **P3-9** README 的 `npx skills@latest add mattpocock/skills` 补 `-a pi`
+- **P3-10** 通用版 description 的"doc-only edits"与 L3 定义措辞统一
+- **P3-12** `review-checklist-base.md` 第 3 节去 Java 语境（本次实测在 Python 上仍有效，改不改都不影响）
 
 ## 八、复现方式
 
@@ -194,5 +216,6 @@ git --no-pager diff --stat                     # 3 个文件
 
 - 没有实机安装 omp 跑一遍（环境无 omp），因此"按 README 安装即可用"只有文档级证据。
 - 没有验证 omp 运行时对 `output` schema 的**强制校验**行为（子代理是否会被拦下重派）。
-- 没有改动任何 skill / agent / checklist 文件——本报告只是评估与建议，改动应由你按维护纪律决定。
+- 除第七节列出的 P1 缺陷修复外，没有改动其他 skill / agent / checklist 内容；`review-checklist-base.md` 一字未动，
+  通用版 `dev-review-workflow/SKILL.md` 也一字未动（修复只落在 omp 适配版与配套文件）。
 
