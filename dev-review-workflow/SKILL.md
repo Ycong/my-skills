@@ -47,7 +47,7 @@ description: Gated dev loop with subagent review — plan, risk tiering, approva
 
 L0 不写方案文档、不写 `.review-workflow-state`；直通卡与验收原始输出留在会话记录里。
 一旦进入第 1 步（常规流程），不得中途退回 L0。
-注：L0 是**流程直通**，不改变 checklist 的风险分级判定（分级仍按 checklist 的 L1/L2/L3 判，放行方式由人工在直通卡里显式确认）。若要让 L0 成为正式分级，需人工在 `review-checklist-base.md` 与项目 `review-checklist.md` 中补条目——母版规则：AI 不得自行修改。
+注：L0 的**准入条件**定义在项目 `review-checklist.md` 的分级表里（母版 `review-checklist-base.md` 已含该行）；本文件只管它**怎么走**。两处不一致时以 checklist 为准，且取更严的一侧。
 
 **1. 方案产出（AI）**
 必须包含四要素：影响面、风险分级建议及理由、回滚方案、可执行验收清单（能自动化的验收项必须落为测试或脚本）。缺任一项直接退回重写，不进入审核。
