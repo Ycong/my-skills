@@ -49,3 +49,29 @@ SKILL.md 相对 `../dev-review-workflow/SKILL.md` 的差异**全部属于以下�
 ## 审核标准
 
 同通用版：项目根目录 `review-checklist.md`（母版 `../review-checklist-base.md`），本目录不携带、不维护审核标准。
+
+## 可选依赖：codegraph（代码图谱）
+
+两个 prompt 模板都写了"工具优先级：查调用链/波及面优先用 codegraph"——reviewer 要核对影响面、verifier 要核对夹带与回归范围，
+都依赖调用链；[codegraph](https://github.com/colbymchenry/codegraph) 的 `codegraph_explore` 一次返回符号源码 + 调用路径 + 波及面，
+比 grep + 逐个 read 省得多。
+
+**omp 不在它的官方支持列表**（Claude Code / Cursor / Codex / opencode / Gemini / …），接入有两条路，任选其一：
+
+```bash
+# 路 A：只用 CLI（推荐，零配置改动）——四个 agent 的 tools 里都有 bash，直接可调
+codegraph install --yes     # 安装/升级 CLI；对 omp 而言 autodetect 不命中，只装 CLI
+codegraph init              # 首次为当前项目建索引（之后增量 sync，行为以官方 README 为准）
+codegraph status            # 核对索引状态
+codegraph callers <符号名>   # 验证：能列出调用方即接入成功
+```
+
+路 B：MCP —— 把 codegraph 的 MCP server 加进 omp 的 MCP 配置（见 `omp.sh/docs/mcp`）。两个坑：
+1. agent 的 `tools` 是**显式允许列表**，未列出即不可用；启用 MCP 后必须把工具名（形如 `mcp__<server>__codegraph_explore`）
+   加进四个 agent 的 `tools`，否则模板里的约束是空话。
+2. codegraph 的 MCP **默认只暴露 `codegraph_explore`**；其余工具需 `CODEGRAPH_MCP_TOOLS=explore,node,search,callers,callees,impact,files,status` 才挂出。
+
+**别为用而用**（成本判断，收益方差很大）：
+- 两万行以内、目录清晰的工程，图谱收益往往盖不过建索引与维护成本；
+- 标准三层架构（Controller → Service → Mapper）调用关系本身清晰，收益有限；
+- 主战场是**低透明度**工程：深度依赖事件发布、AOP 动态代理、反射/RPC 的调用链。

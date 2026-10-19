@@ -202,6 +202,7 @@ frontmatter description 同步收窄触发范围。omp 版把"主会话不产出
 | "给出入口文件，范围按需扩大"（上千行文件真正要改的只有三五十行；"看病拍胸片，别做全身 CT"） | 第 3 步材料与两个 prompt 模板补"**只给入口路径/符号名，按需自行扩大范围**"；执行验收模板补"相关代码"项 | 两版 SKILL.md（模板） |
 | **Ponytail 7 层决策阶梯**（真需要存在吗 → 仓库已有吗 → 标准库 → 平台原生 → 已装依赖 → 一行能写完吗 → 才写最少必要代码；修根因不修症状） | checklist 第一节"方案合理性"由 5 条无法核对的表述，换成**可逐条打勾的 7 层阶梯** + 根因 + 弃选理由 + 误伤评估 | `review-checklist-base.md` |
 | **Caveman 输出规约**（compress STYLE, never RIGOR；结论先行、删铺垫、**术语/代码/路径/报错一字不删**；安全与不可逆操作恢复完整表达） | 两个 prompt 模板各补一行"输出形态"（放在模板而非 agent 正文，两版一次生效、不会漂移） | 两版 SKILL.md（模板） |
+| **代码图谱（Ch.5.2.2）**：先定位符号与依赖，再读必要实现；收益取决于调用透明度（三层架构收益低，事件/AOP/反射才是主战场） | 两个 prompt 模板各补一行"**工具优先级**"：查调用链/波及面/受影响测试优先 `codegraph`（MCP `codegraph_explore` 或 bash 调 `codegraph impact|callers|affected|node --json`），不可用退回 grep+read，**小项目不必强用**，并在结论里注明用了哪条路 | 两版 SKILL.md（模板）+ `dev-review-workflow-omp/README.md` 接入说明 |
 
 **未采纳**：RTK（终端过滤）/ Context Mode（大文件沙箱）/ Headroom（发包压缩）——都是 Cursor / Claude Code 的 hook 生态工具，
 omp 无等价挂载点，且文章自己也提醒"工具接口定义每轮都计入底噪，常驻开销可能超过它偶尔节省的 Token"。只取原则（通过项折叠、失败段与退出码原样、超长日志落盘给路径），已并入回传契约。
